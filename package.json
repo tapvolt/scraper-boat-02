@@ -1,0 +1,28 @@
+{
+  "name": "scraper",
+  "version": "1.0.0",
+  "description": "a simple web scraper",
+  "main": "index.js",
+  "author": "Gareth Jackson",
+  "license": "MIT",
+  "scripts": {
+    "start": "NODE_CONFIG_DIR=./config ts-node src/index.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@types/cheerio": "^0.22.2",
+    "@types/winston": "^2.3.3",
+    "cheerio": "^1.0.0-rc.2",
+    "config": "^1.26.1",
+    "js-yaml": "^3.9.0",
+    "tinyreq": "^3.2.2",
+    "typescript": "^2.4.1",
+    "winston": "^2.3.1"
+  },
+  "devDependencies": {
+    "@types/config": "^0.0.32",
+    "@types/node": "^7.0.16",
+    "ts-node": "^3.2.0",
+    "tslint": "^5.5.0"
+  }
+}

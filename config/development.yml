@@ -1,0 +1,11 @@
+scrape:
+  start: https://directories.lloydslist.com/services-browse/ss/5700/country/Australia
+  url: https://directories.lloydslist.com/var/recordset/66893/pos/
+  session: ugjk3eos5vbsu2plrh5ee6l536
+  pagination: 10
+  min: 1
+  max: 101
+
+selector:
+  even: tr.tableevenrow
+  odd: tr.tableoddrow
