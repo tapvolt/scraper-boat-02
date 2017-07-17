@@ -2,6 +2,7 @@ import * as assert from "assert"
 import * as cheerio from "cheerio"
 import * as config from "config"
 import * as fs from "fs"
+import * as json2csv from "json2csv"
 import * as req from "tinyreq"
 import * as log from "winston"
 import * as types from "./types"
@@ -9,15 +10,18 @@ import * as types from "./types"
 export async function main() {
 
     [
-        "scrape.start",
+        "scrape.domain",
         "scrape.url",
         "scrape.pagination",
-        "scrape.session",
         "scrape.min",
         "scrape.max",
 
-        "selector.even",
-        "selector.odd",
+        "selector.header",
+        "selector.name",
+        "selector.telephone",
+        "selector.fax",
+        "selector.website",
+        "selector.description",
 
     ].forEach((key: string) => {
         assert(config.has(key), "Missing key in config")
@@ -25,68 +29,43 @@ export async function main() {
 
     const scrapeConfig = config.get<types.IScrapeConfig>("scrape"),
         selectorConfig = config.get<types.ISelectorConfig>("selector"),
+        urls = [] as any,
         items = [] as any
 
     for (let i = scrapeConfig.min; i <= scrapeConfig.max; i = i + scrapeConfig.pagination) {
-        const $ = await fetchPage(scrapeConfig.url + i, scrapeConfig.session)
-        iterator([$(selectorConfig.even), $(selectorConfig.odd)], items)
+        const $ = await fetchPage(scrapeConfig.url + i),
+            headerElements = $(selectorConfig.header)
+
+        headerElements.each((index, element) => {
+            const path = cheerio(element).children("h3").children("a").attr("href")
+            urls.push(scrapeConfig.domain + path)
+        })
     }
 
-    items.shift()
-    const tabDelimited = items.join("\t")
-    fs.writeFileSync("output.txt", tabDelimited)
+    for (const url of urls) {
+        const $ = await fetchPage(url)
+        items.push({
+            name: $(selectorConfig.name).text(),
+            website: $(selectorConfig.website).text(),
+            telephone: $(selectorConfig.telephone).text(),
+            fax: $(selectorConfig.fax).text(),
+            description: $(selectorConfig.description).text(),
+        })
+    }
+
+    const csv = json2csv({data: items})
+    fs.writeFileSync("output.txt", csv)
 
     process.exit(0)
 }
 
 /**
- * @param selectors
- * @param items
- */
-function iterator(selectors, items) {
-    selectors.forEach((selector) => {
-        selector.map((index, element) => {
-            if (isCountryHeader(element)) {
-                return
-            }
-
-            const text = cheerio(element).text().trim()
-            if (text === "") {
-                return
-            }
-
-            if (isBusinessHeader(element)) {
-                log.info(`new business detected - ${text}`)
-                items.push("\n")
-            }
-
-            if (text.indexOf("|") !== -1) {
-                text.split("|").forEach((part) => {
-                    if (part) {
-                        items.push(part.trim())
-                    }
-                })
-                return
-            }
-            items.push(text)
-        })
-    })
-}
-
-/**
  * @param url
- * @param session
  * @returns {Promise<>}
  */
-function fetchPage(url: string, session: string): any {
+function fetchPage(url: string): any {
     return new Promise((resolve) => {
-        const options = {
-            headers: {
-                Cookie: "SESSID=" + session,
-            },
-            url,
-        }
-        req(options, (err, body) => {
+        req(url, (err, body) => {
             if (err) {
                 throw err
             }
@@ -94,22 +73,6 @@ function fetchPage(url: string, session: string): any {
             resolve(cheerio.load(body))
         })
     })
-}
-
-/**
- * @param element
- * @returns {boolean}
- */
-function isCountryHeader(element) {
-    return cheerio(element).children().children(".ss_country").length === 1
-}
-
-/**
- * @param element
- * @returns {boolean}
- */
-function isBusinessHeader(element) {
-    return cheerio(element).children().children(".ss_cname").length === 1
 }
 
 if (require.main === module) {

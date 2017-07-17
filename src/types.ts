@@ -1,13 +1,16 @@
 export interface IScrapeConfig {
-    start: string
+    domain: string
     url: string
-    session: string
     pagination: number
     min: number
     max: number
 }
 
 export interface ISelectorConfig {
-    even: string
-    odd: string
+    header: string
+    name: string
+    telephone: string
+    fax: string
+    website: string
+    description: string
 }

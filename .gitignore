@@ -60,7 +60,6 @@ typings/
 .env
 
 output.xlsx
-output.txt
 ~$output.xlsx
-.idea
+.idea/
 bin
