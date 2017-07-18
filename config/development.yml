@@ -1,14 +1,14 @@
-scrape:
-  domain: http://shipyards.gr
-  url: http://shipyards.gr/ship-repair-shipyards?limit=20&limitstart=
-  pagination: 20
-  min: 0
-  max: 300
-
-selector:
-  header: .header
+cssSelector:
+  businessRecord: .header
   name: div h2 span
   telephone: .mfieldtype_coretelephone div.output
   fax: .mfieldtype_corefax div.output
   website: .mfieldtype_corewebsite div.output
   description: .listing-desc
+
+target:
+  domain: http://shipyards.gr
+  uri: /ship-repair-shipyards?limit=20&limitstart=
+  pagination: 20
+  min: 0
+  max: 300

@@ -5,65 +5,63 @@ import * as fs from "fs"
 import * as json2csv from "json2csv"
 import * as req from "tinyreq"
 import * as log from "winston"
-import * as types from "./types"
+import {ICssSelector, ITarget} from "./types"
 
 export async function main() {
 
     [
-        "scrape.domain",
-        "scrape.url",
-        "scrape.pagination",
-        "scrape.min",
-        "scrape.max",
+        "target.domain",
+        "target.uri",
+        "target.pagination",
+        "target.min",
+        "target.max",
 
-        "selector.header",
-        "selector.name",
-        "selector.telephone",
-        "selector.fax",
-        "selector.website",
-        "selector.description",
+        "cssSelector.businessRecord",
+        "cssSelector.name",
+        "cssSelector.telephone",
+        "cssSelector.fax",
+        "cssSelector.website",
+        "cssSelector.description",
 
     ].forEach((key: string) => {
         assert(config.has(key), "Missing key in config")
     })
 
-    const scrapeConfig = config.get<types.IScrapeConfig>("scrape"),
-        selectorConfig = config.get<types.ISelectorConfig>("selector"),
-        urls = [] as any,
-        items = [] as any
+    const target = config.get<ITarget>("target"),
+        cssSelector = config.get<ICssSelector>("cssSelector"),
+        urlsToVisit = [] as any,
+        businesses = [] as any
 
-    for (let i = scrapeConfig.min; i <= scrapeConfig.max; i = i + scrapeConfig.pagination) {
-        const $ = await fetchPage(scrapeConfig.url + i),
-            headerElements = $(selectorConfig.header)
-
-        headerElements.each((index, element) => {
-            const path = cheerio(element).children("h3").children("a").attr("href")
-            urls.push(scrapeConfig.domain + path)
+    for (let i = target.min; i <= target.max; i = i + target.pagination) {
+        const elements = await getElements(target, i, cssSelector)
+        elements.each((index, el) => {
+            const uri = cheerio(el).children("h3").children("a").attr("href")
+            urlsToVisit.push(target.domain + uri)
         })
     }
 
-    for (const url of urls) {
-        const $ = await fetchPage(url)
-        items.push({
-            name: $(selectorConfig.name).text(),
-            website: $(selectorConfig.website).text(),
-            telephone: $(selectorConfig.telephone).text(),
-            fax: $(selectorConfig.fax).text(),
-            description: $(selectorConfig.description).text(),
+    for (const url of urlsToVisit) {
+        const $ = await fetch(url)
+        businesses.push({
+            name: $(cssSelector.name).text(),
+            website: $(cssSelector.website).text(),
+            telephone: $(cssSelector.telephone).text(),
+            fax: $(cssSelector.fax).text(),
+            description: $(cssSelector.description).text(),
         })
     }
 
-    const csv = json2csv({data: items})
-    fs.writeFileSync("output.txt", csv)
+    const csvData = json2csv({data: businesses})
+    fs.writeFileSync("output.txt", csvData)
 
     process.exit(0)
 }
 
 /**
  * @param url
- * @returns {Promise<>}
+ * @returns {Promise<any>}
  */
-function fetchPage(url: string): any {
+async function fetch(url: string): Promise<any> {
     return new Promise((resolve) => {
         req(url, (err, body) => {
             if (err) {
@@ -73,6 +71,17 @@ function fetchPage(url: string): any {
             resolve(cheerio.load(body))
         })
     })
+}
+
+/**
+ * @param target
+ * @param i
+ * @param cssSelector
+ * @returns {Promise<any>}
+ */
+async function getElements(target: ITarget, i: number, cssSelector: ICssSelector) {
+    const $ = await fetch(target.domain + target.uri + i)
+    return $(cssSelector.businessRecord)
 }
 
 if (require.main === module) {
